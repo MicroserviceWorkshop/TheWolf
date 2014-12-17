@@ -13,6 +13,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
@@ -28,8 +29,13 @@ public class SalesRestService {
 
   @GET
   @Path("/{id}")
-  public SalesOrder get(@PathParam("id") int id) {
-    return salesService.getOrder(id);
+  public Response get(@PathParam("id") int id) {
+    SalesOrder salesOrder = salesService.getOrder(id);
+    if (salesOrder != null) {
+      return Response.ok(salesOrder).build();
+    } else {
+      return Response.status(Status.NOT_FOUND).build();
+    }
   }
 
   @POST
