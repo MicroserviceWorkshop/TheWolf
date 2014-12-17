@@ -14,4 +14,9 @@ public class SalesService {
     return salesOrder;
   }
 
+  public SalesOrder addOrder(SalesOrder salesOrder) {
+    salesOrder.setId((int) (Math.random() * 5000));
+    return salesOrder;
+  }
+
 }
