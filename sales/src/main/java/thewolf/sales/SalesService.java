@@ -1,21 +1,23 @@
 package thewolf.sales;
 
 import javax.inject.Named;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
 @Named
 @Transactional
 public class SalesService {
 
+  @PersistenceContext
+  private EntityManager em;
+
   public SalesOrder getOrder(int id) {
-    SalesOrder salesOrder = new SalesOrder();
-    salesOrder.setId(id);
-    salesOrder.setCustomerName("Marco");
-    return salesOrder;
+    return em.find(SalesOrder.class, id);
   }
 
   public SalesOrder addOrder(SalesOrder salesOrder) {
-    salesOrder.setId((int) (Math.random() * 5000));
+    em.persist(salesOrder);
     return salesOrder;
   }
 
