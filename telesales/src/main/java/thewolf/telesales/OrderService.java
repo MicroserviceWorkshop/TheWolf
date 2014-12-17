@@ -1,5 +1,6 @@
 package thewolf.telesales;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,6 +8,9 @@ import java.util.Map;
 
 import javax.inject.Named;
 import javax.transaction.Transactional;
+import javax.ws.rs.client.ClientBuilder;
+
+import org.springframework.web.client.RestTemplate;
 
 @Named
 @Transactional
@@ -39,7 +43,12 @@ public class OrderService {
 	}
 
 	public void releaseOrder(Order order) {
-		orders.remove(order.getId());
+		SalesOrder salesOrder = new SalesOrder();
+		salesOrder.setCustomerName("Hans Black");
+		
+		RestTemplate restTemplate = new RestTemplate();
+		URI uri = restTemplate.postForLocation("http://localhost:8082/salesorders", salesOrder);
+		System.out.println(uri.toASCIIString());
 	}
 
 

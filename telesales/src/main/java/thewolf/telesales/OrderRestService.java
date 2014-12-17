@@ -44,6 +44,7 @@ public class OrderRestService {
 	@Path("{id}")
 	public Response getOrder(@PathParam("id") int id) {
 		Order order = orderService.getOrder(id);
+		orderService.releaseOrder(order);
 		return Response.ok(order).build();
 	}
 	
