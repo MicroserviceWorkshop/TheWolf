@@ -2,4 +2,5 @@
 /.settings/
 /.classpath
 /.project
+/transaction-logs/
 /pom.xml~
