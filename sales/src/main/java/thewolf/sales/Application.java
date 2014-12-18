@@ -14,7 +14,7 @@ public class Application {
   }
 
   @Bean
-  public ApplicationListener<EmbeddedServletContainerInitializedEvent> abc() {
+  public ApplicationListener<EmbeddedServletContainerInitializedEvent> initializeZookeeper() {
     return new ZooInitializer();
   }
 }

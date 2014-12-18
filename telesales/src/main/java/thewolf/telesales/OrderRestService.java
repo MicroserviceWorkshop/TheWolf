@@ -44,13 +44,12 @@ public class OrderRestService {
 	@Path("{id}")
 	public Response getOrder(@PathParam("id") int id) {
 		Order order = orderService.getOrder(id);
-		orderService.releaseOrder(order);
 		return Response.ok(order).build();
 	}
 	
 	@PUT
 	@Path("{id}/release")
-	public Response releaseOrder(@PathParam("id") int id) {
+	public Response releaseOrder(@PathParam("id") int id) throws Exception {
 		Order order = orderService.getOrder(id);
 		orderService.releaseOrder(order);
 		return Response.ok().build();
