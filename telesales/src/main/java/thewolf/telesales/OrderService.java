@@ -9,8 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.springframework.web.client.RestTemplate;
-
 @Named
 public class OrderService {
 
@@ -44,14 +42,17 @@ public class OrderService {
   }
 
   public void releaseOrder(Order order) throws Exception {
-    SalesOrder salesOrder = new SalesOrder();
-    salesOrder.setCustomerName("Hans Black");
+    // SalesOrder salesOrder = new SalesOrder();
+    // salesOrder.setCustomerName("Hans Black");
+    //
+    // URI serviceUri = serviceLocator.locate("sales", "salesorders");
+    //
+    // RestTemplate restTemplate = new RestTemplate();
+    // URI uri = restTemplate.postForLocation(serviceUri, salesOrder);
+    // System.out.printf("Called service %s and got result %s\n", serviceUri.toString(),
+    // uri.toString());
 
     URI serviceUri = serviceLocator.locate("sales", "salesorders");
-
-    RestTemplate restTemplate = new RestTemplate();
-    URI uri = restTemplate.postForLocation(serviceUri, salesOrder);
-    System.out.printf("Called service %s and got result %s\n", serviceUri.toString(),
-        uri.toString());
+    new OrderServiceReleaseCommand(serviceUri).execute();
   }
 }
