@@ -2,22 +2,20 @@ package thewolf.telesales;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.transaction.Transactional;
 
 import org.springframework.web.client.RestTemplate;
 
 @Named
-@Transactional
 public class OrderService {
 
   private int currentOrderId = 1;
-  private static Map<Integer, Order> orders = new HashMap<Integer, Order>();
+  private static Map<Integer, Order> orders = new ConcurrentHashMap<>();
 
   @Inject
   private ServiceLocator serviceLocator;
