@@ -2,4 +2,5 @@
 /.settings/
 /.project
 /.classpath
-/*.mv.db
+*.mv.db
+*.trace.db
