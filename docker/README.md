@@ -2,7 +2,7 @@
 
 ## Installation on Ubuntu
 
-- Use the described installation procedure on the docker web site with the 3rd party repository to get the latest docker version
+- Use the described installation procedure on the docker web site with the 3rd party repository to get the latest docker version: [docker maintained package installation](https://docs.docker.com/installation/ubuntulinux/#docker-maintained-package-installation)
 - Add your user to the **docker** group so that you don't need to sudo everytime: 
 > usrmod -a -G docker username
 
@@ -29,17 +29,17 @@ There are already docker images available
 
     docker run -d -p 9000:2181 --name zookeeper jplock/zookeeper
 
-I mapped the port **9000** just in case you're still running a local zookeeper on your machine. And I also gave it a the name **zookeeper** (that's for later use). To access the zookeeper console:
+I mapped the port **9000** just in case you're still running a local zookeeper on your machine. And I also gave it the name **zookeeper** (that's for later use). To access the zookeeper console:
 
     /usr/share/zookeeper/bin/zkCli.sh -server localhost:9000
     
 ## But wait. How does telesales connect to zookeeper?
 
-Luckily the zookeeper instance has a name. With that we can link new docker instances to it:
+Luckily the zookeeper instance has a name. With that we can link new docker instances to it. See [dockerlinks](http://docs.docker.com/userguide/dockerlinks/). Docker will then inject some environment variables. To see them we can start an Ubuntu image and let it dump them with the env command:
     
     docker run -i -t --link zookeeper:zk ubuntu env
 
-This links the ubuntu instance to the zookeeper. Docker injects a couple of environment variables the we dump with the env command:
+This is the output:
 
     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     HOSTNAME=9c5703eb6428
