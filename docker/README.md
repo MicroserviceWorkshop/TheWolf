@@ -83,9 +83,96 @@ For easier recognition I switched the alias from zk to zookeeper:
 
     docker run -d --name telesales -p 8080:8080 --link zookeeper:zookeeper polim/thewolf_telesales:0.0.1
 
+## Database
 
-## Does it work yet?
+We are using an H2 instance for development and I found this image which seems to be ok for what I want: <code>zilvinas/h2-dockerfile</code>. The only thing missing is the data volume.
 
-Well, telesales starts and connects to the dockerized zookeeper. But the next steps would be to dockerize the sales service (for which I also need some DB instance). Stay tuned...
+Currently I run it with:
 
+    docker run -d --name h2db -P zilvinas/h2-dockerfile
+    
+## Sales service
+
+The sales service also needs zookeeper. That works the same way as in telesales. But this time the service is registering itself at zookeeper. 
+
+### Self registration
+
+What hostname is it going to use? Because "localhost" is definitely not going to work. This little code fragment gets me the address:
+
+    String hostAddress = InetAddress.getLocalHost().getHostAddress();
+
+It is a bit brittle because it depends on the order of the network interfaces. But it is going to work for the moment.
+
+### Link to the database
+
+The docker image has to be started with a link to the database too. And then it is possible to have a DB url like this:
+
+    spring.datasource.url=jdbc:h2:tcp://${DB_PORT_1521_TCP_ADDR:localhost}:${DB_PORT_1521_TCP_PORT:9092}/./sales
+
+### How to start sales
+
+We need to link zookeeper and the database:
+
+    docker run -d --name sales -P --link zookeeper:zookeeper --link h2db:db polim/thewolf_sales:0.0.1
+
+## Status
+
+Now everything works. You can release orders via telesales:
+
+    curl -X PUT http://localhost:8080/orders/0/release
+
+Start a second sales service an release the orders couple of times. Now get the telesales log with <code>docker logs telesales</code> and you should see something like this:
+
+    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/2
+    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/3
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/4
+    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/5
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/6
+    Called service http://172.17.0.26:62477/salesorders and got result http://172.17.0.26:62477/salesorders/7
+    Called service http://172.17.0.30:60459/salesorders and got result http://172.17.0.30:60459/salesorders/8
+    Called service http://172.17.0.26:62477/salesorders and got result http://172.17.0.26:62477/salesorders/9
+    
+So it switches between the **sales** instances as soon as the second is available. 
+
+Now stop one (<code>docker stop sales</code>) and again release the orders a couple of times.
+
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/18
+    **HYSTRIX FALLBACK**
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/19
+    **HYSTRIX FALLBACK**
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/20
+    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/21
+    
+It takes a while until zookeeper finds out about the missing service. So every second call goes into fallback.
+
+## PS 
+
+A <code>docker ps</code> yields:
+
+    CONTAINER ID        IMAGE                           COMMAND                CREATED              STATUS              PORTS                                                                       NAMES
+    57c53a75124a        polim/thewolf_sales:0.0.1       "java -jar /app/sale   About a minute ago   Up About a minute                                                                               sales1              
+    126299c0fe4f        polim/thewolf_telesales:0.0.1   "java -jar /app/tele   9 minutes ago        Up 9 minutes        0.0.0.0:8080->8080/tcp                                                      telesales           
+    4859926dd150        polim/thewolf_sales:0.0.1       "java -jar /app/sale   15 minutes ago       Up 15 minutes       0.0.0.0:8081->8080/tcp                                                      sales               
+    b55e6a182621        zilvinas/h2-dockerfile:latest   "/bin/sh -c 'java -c   25 minutes ago       Up 25 minutes       0.0.0.0:49163->1521/tcp, 0.0.0.0:49164->81/tcp                              h2db                
+    d67cd7b07e02        jplock/zookeeper:latest         "/opt/zookeeper-3.4.   About an hour ago    Up About an hour    0.0.0.0:49160->2181/tcp, 0.0.0.0:49161->2888/tcp, 0.0.0.0:49162->3888/tcp   zookeeper 
+
+## Is it finished now?
+
+Well, there are some points I'm not happy about yet. 
+
+* The IP address which **sales** uses to register itself at zookeeper is a bit brittle
+* Each of the **sales** instances respond with their own host:port in the REST URL. 
+    * Should this be behind some kind of load balancer?
+* It takes a while until **zookeeper** detects that a service is missing. The circuit breaker in **telesales** actually knows it much earlier.
+    * Should we have a retry mechanism in **telesales**?
+* The database data is not outside the docker image yet.
+
+* Single point of failure
+    * The database
+    * telesales (could be started a second time)
+    * zookeeper (there are mechanisms for that)
+    * the machine: everything runs on one machine now
+    * kubernetes?
+
+Stay tuned...
 

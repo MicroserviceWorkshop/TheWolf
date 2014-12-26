@@ -23,7 +23,8 @@ public class OrderServiceReleaseCommand extends HystrixCommand<Void> {
 
     RestTemplate restTemplate = new RestTemplate();
     URI uri = restTemplate.postForLocation(serviceUri, salesOrder);
-    System.out.printf("Called service %s and got result %s\n", uri.toString(), uri.toString());
+    System.out.printf("Called service %s and got result %s\n", serviceUri.toString(),
+        uri.toString());
 
     return null;
   }
