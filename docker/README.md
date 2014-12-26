@@ -85,11 +85,9 @@ For easier recognition I switched the alias from zk to zookeeper:
 
 ## Database
 
-We are using an H2 instance for development and I found this image which seems to be ok for what I want: `zilvinas/h2-dockerfile`. The only thing missing is the data volume.
+We are using an H2 instance for development and I found this image which seems to be ok for what I want: `zilvinas/h2-dockerfile`. The database will store its data in `/opt/h2-data`. Currently I run it with:
 
-Currently I run it with:
-
-    docker run -d --name h2db -P zilvinas/h2-dockerfile
+    docker run -d --name h2db -P -v /var/h2data:/opt/h2-data zilvinas/h2-dockerfile
     
 ## Sales service
 
@@ -164,7 +162,6 @@ Well, there are some points I'm not happy about yet.
     * Should this be behind some kind of load balancer?
 * It takes a while until **zookeeper** detects that a service is missing. The circuit breaker in **telesales** actually knows it much earlier.
     * Should we have a retry mechanism in **telesales**?
-* The database data is not outside the docker image yet.
 
 * Single point of failure
     * The database
