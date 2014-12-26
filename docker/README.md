@@ -109,11 +109,21 @@ The docker image has to be started with a link to the database too. And then it 
 
     spring.datasource.url=jdbc:h2:tcp://${DB_PORT_1521_TCP_ADDR:localhost}:${DB_PORT_1521_TCP_PORT:9092}/./sales
 
-### How to start sales
+### How to start the sales service
 
 We need to link zookeeper and the database:
 
     docker run -d --name sales -P --link zookeeper:zookeeper --link h2db:db polim/thewolf_sales:0.0.1
+
+## Everything up?
+
+A <code>docker ps</code> should yield something like this:
+
+    CONTAINER ID        IMAGE                           COMMAND                CREATED              STATUS              PORTS                                                                       NAMES
+    126299c0fe4f        polim/thewolf_telesales:0.0.1   "java -jar /app/tele   9 minutes ago        Up 9 minutes        0.0.0.0:8080->8080/tcp                                                      telesales           
+    4859926dd150        polim/thewolf_sales:0.0.1       "java -jar /app/sale   15 minutes ago       Up 15 minutes       0.0.0.0:8081->8080/tcp                                                      sales               
+    b55e6a182621        zilvinas/h2-dockerfile:latest   "/bin/sh -c 'java -c   25 minutes ago       Up 25 minutes       0.0.0.0:49163->1521/tcp, 0.0.0.0:49164->81/tcp                              h2db                
+    d67cd7b07e02        jplock/zookeeper:latest         "/opt/zookeeper-3.4.   About an hour ago    Up About an hour    0.0.0.0:49160->2181/tcp, 0.0.0.0:49161->2888/tcp, 0.0.0.0:49162->3888/tcp   zookeeper 
 
 ## Status
 
@@ -121,40 +131,29 @@ Now everything works. You can release orders via telesales:
 
     curl -X PUT http://localhost:8080/orders/0/release
 
-Start a second sales service an release the orders couple of times. Now get the telesales log with <code>docker logs telesales</code> and you should see something like this:
+Start a second sales service and release the orders a couple of times. Now get the telesales log with <code>docker logs telesales</code> and you should see something like this:
 
-    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/2
-    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/3
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/4
-    Called service http://172.17.0.**26:62477**/salesorders and got result http://172.17.0.26:62477/salesorders/5
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/6
-    Called service http://172.17.0.26:62477/salesorders and got result http://172.17.0.26:62477/salesorders/7
-    Called service http://172.17.0.30:60459/salesorders and got result http://172.17.0.30:60459/salesorders/8
-    Called service http://172.17.0.26:62477/salesorders and got result http://172.17.0.26:62477/salesorders/9
+    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/2
+    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/3
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/4
+    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/5
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/6
+    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/7
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/8
+    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/9
     
-So it switches between the **sales** instances as soon as the second is available. 
+So it switches between the **sales** instances as soon as the second service is available. 
 
 Now stop one (<code>docker stop sales</code>) and again release the orders a couple of times.
 
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/18
-    **HYSTRIX FALLBACK**
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/19
-    **HYSTRIX FALLBACK**
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/20
-    Called service http://172.17.0.**30:60459**/salesorders and got result http://172.17.0.30:60459/salesorders/21
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/18
+    <b>HYSTRIX FALLBACK</b>
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/19
+    <b>HYSTRIX FALLBACK</b>
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/20
+    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/21
     
 It takes a while until zookeeper finds out about the missing service. So every second call goes into fallback.
-
-## PS 
-
-A <code>docker ps</code> yields:
-
-    CONTAINER ID        IMAGE                           COMMAND                CREATED              STATUS              PORTS                                                                       NAMES
-    57c53a75124a        polim/thewolf_sales:0.0.1       "java -jar /app/sale   About a minute ago   Up About a minute                                                                               sales1              
-    126299c0fe4f        polim/thewolf_telesales:0.0.1   "java -jar /app/tele   9 minutes ago        Up 9 minutes        0.0.0.0:8080->8080/tcp                                                      telesales           
-    4859926dd150        polim/thewolf_sales:0.0.1       "java -jar /app/sale   15 minutes ago       Up 15 minutes       0.0.0.0:8081->8080/tcp                                                      sales               
-    b55e6a182621        zilvinas/h2-dockerfile:latest   "/bin/sh -c 'java -c   25 minutes ago       Up 25 minutes       0.0.0.0:49163->1521/tcp, 0.0.0.0:49164->81/tcp                              h2db                
-    d67cd7b07e02        jplock/zookeeper:latest         "/opt/zookeeper-3.4.   About an hour ago    Up About an hour    0.0.0.0:49160->2181/tcp, 0.0.0.0:49161->2888/tcp, 0.0.0.0:49162->3888/tcp   zookeeper 
 
 ## Is it finished now?
 
@@ -171,8 +170,7 @@ Well, there are some points I'm not happy about yet.
     * The database
     * telesales (could be started a second time)
     * zookeeper (there are mechanisms for that)
-    * the machine: everything runs on one machine now
-    * kubernetes?
+    * the machine: everything runs on one machine now (how can kubernetes help?)
 
 Stay tuned...
 
