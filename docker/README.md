@@ -85,7 +85,7 @@ For easier recognition I switched the alias from zk to zookeeper:
 
 ## Database
 
-We are using an H2 instance for development and I found this image which seems to be ok for what I want: <code>zilvinas/h2-dockerfile</code>. The only thing missing is the data volume.
+We are using an H2 instance for development and I found this image which seems to be ok for what I want: `zilvinas/h2-dockerfile`. The only thing missing is the data volume.
 
 Currently I run it with:
 
@@ -117,7 +117,7 @@ We need to link zookeeper and the database:
 
 ## Everything up?
 
-A <code>docker ps</code> should yield something like this:
+A `docker ps` should yield something like this:
 
     CONTAINER ID        IMAGE                           COMMAND                CREATED              STATUS              PORTS                                                                       NAMES
     126299c0fe4f        polim/thewolf_telesales:0.0.1   "java -jar /app/tele   9 minutes ago        Up 9 minutes        0.0.0.0:8080->8080/tcp                                                      telesales           
@@ -131,27 +131,27 @@ Now everything works. You can release orders via telesales:
 
     curl -X PUT http://localhost:8080/orders/0/release
 
-Start a second sales service and release the orders a couple of times. Now get the telesales log with <code>docker logs telesales</code> and you should see something like this:
+Start a second sales service and release the orders a couple of times. Now get the telesales log with `docker logs telesales` and you should see something like this:
 
-    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/2
-    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/3
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/4
-    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/5
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/6
-    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/7
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/8
-    Called service http://172.17.0.<b>26:62477</b>/salesorders and got result http://172.17.0.26:62477/salesorders/9
+    Called service http://172.17.0.__26:62477__/salesorders and got result http://172.17.0.26:62477/salesorders/2
+    Called service http://172.17.0.__26:62477__/salesorders and got result http://172.17.0.26:62477/salesorders/3
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/4
+    Called service http://172.17.0.__26:62477__/salesorders and got result http://172.17.0.26:62477/salesorders/5
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/6
+    Called service http://172.17.0.__26:62477__/salesorders and got result http://172.17.0.26:62477/salesorders/7
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/8
+    Called service http://172.17.0.__26:62477__/salesorders and got result http://172.17.0.26:62477/salesorders/9
     
 So it switches between the **sales** instances as soon as the second service is available. 
 
-Now stop one (<code>docker stop sales</code>) and again release the orders a couple of times.
+Now stop one (`docker stop sales`) and again release the orders a couple of times.
 
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/18
-    <b>HYSTRIX FALLBACK</b>
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/19
-    <b>HYSTRIX FALLBACK</b>
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/20
-    Called service http://172.17.0.<b>30:60459</b>/salesorders and got result http://172.17.0.30:60459/salesorders/21
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/18
+    __HYSTRIX FALLBACK__
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/19
+    __HYSTRIX FALLBACK__
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/20
+    Called service http://172.17.0.__30:60459__/salesorders and got result http://172.17.0.30:60459/salesorders/21
     
 It takes a while until zookeeper finds out about the missing service. So every second call goes into fallback.
 
