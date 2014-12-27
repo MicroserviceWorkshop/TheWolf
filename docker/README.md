@@ -170,7 +170,7 @@ The services already use **log4j2**. Now it is very simple to add a configuratio
 ```
 The nice part is, that if we link the services docker instance to the graylog2 instance it will inject the neccessary environment variables and overwrite the default configuration (which is localhost:12201).
 
-** Be aware that the commited log4j2.xml contains a console logger - the gelf logger is commented out. **
+**Be aware that the commited log4j2.xml contains a console logger - the gelf logger is commented out.**
 
 ## Everything up?
 
