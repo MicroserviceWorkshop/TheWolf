@@ -1,1 +1,2 @@
-docker run -d -p 9000:2181 --name zookeeper jplock/zookeeper
+docker rm zookeeper
+docker run -d -p 2181:2181 --name zookeeper jplock/zookeeper
