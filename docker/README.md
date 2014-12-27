@@ -139,36 +139,38 @@ Graylog2 keeps two data directories: one for its data, and one for the logs of g
 
 The services already use **log4j2**. Now it is very simple to add a configuration.
 
-1. Add the dependencies to the pom.xml
+* Add the dependencies to the pom.xml
 ```xml
-		<dependency>
-			<groupId>org.graylog2.log4j2</groupId>
-			<artifactId>log4j2-gelf</artifactId>
-			<version>1.0.1</version>
-		</dependency>
+	<dependency>
+		<groupId>org.graylog2.log4j2</groupId>
+		<artifactId>log4j2-gelf</artifactId>
+		<version>1.0.1</version>
+	</dependency>
 ```
-2. Configure log4j2.xml
+* Configure log4j2.xml
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO">
-	<Properties>
-		<!-- Default properties for the Graylog2 instance in case they are not injected via docker link. -->
-		<Property name="GRAYLOG2_PORT_12201_UDP_ADDR">localhost</Property>
-		<Property name="GRAYLOG2_PORT_12201_UDP_PORT">12201</Property>
-	</Properties>
-
-	<Appenders>
-		<GELF name="gelfAppender" server="${env:GRAYLOG2_PORT_12201_UDP_ADDR}" port="${env:GRAYLOG2_PORT_12201_UDP_PORT}" protocol="UDP" />
-	</Appenders>
-	
-	<Loggers>
-		<Root level="INFO">
-			<AppenderRef ref="gelfAppender" />
-		</Root>
-	</Loggers>
-</Configuration>
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Configuration status="INFO">
+    	<Properties>
+    		<!-- Default properties for the Graylog2 instance in case they are not injected via docker link. -->
+    		<Property name="GRAYLOG2_PORT_12201_UDP_ADDR">localhost</Property>
+    		<Property name="GRAYLOG2_PORT_12201_UDP_PORT">12201</Property>
+    	</Properties>
+    
+    	<Appenders>
+    		<GELF name="gelfAppender" server="${env:GRAYLOG2_PORT_12201_UDP_ADDR}" port="${env:GRAYLOG2_PORT_12201_UDP_PORT}" protocol="UDP" />
+    	</Appenders>
+    	
+    	<Loggers>
+    		<Root level="INFO">
+    			<AppenderRef ref="gelfAppender" />
+    		</Root>
+    	</Loggers>
+    </Configuration>
 ```
 The nice part is, that if we link the services docker instance to the graylog2 instance it will inject the neccessary environment variables and overwrite the default configuration (which is localhost:12201).
+
+** Be aware that the commited log4j2.xml contains a console logger - the gelf logger is commented out. **
 
 ## Everything up?
 
