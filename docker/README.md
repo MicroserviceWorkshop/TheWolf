@@ -25,13 +25,13 @@ And then build it:
 
 ## Start zookeeper
 
-There are already docker images available
+There are already docker images available. To start it see `start-zookeeper.sh`:
 
-    docker run -d -p 9000:2181 --name zookeeper jplock/zookeeper
+    docker run -d -p 2181:2181 --name zookeeper jplock/zookeeper
 
-I mapped the port **9000** just in case you're still running a local zookeeper on your machine. And I also gave it the name **zookeeper** (that's for later use). To access the zookeeper console:
+The instance has the name **zookeeper** (that's for later use). If you have the zookeeper tools on your machine you can access the zookeeper console:
 
-    /usr/share/zookeeper/bin/zkCli.sh -server localhost:9000
+    /usr/share/zookeeper/bin/zkCli.sh -server localhost:2181
     
 ## But wait. How does telesales connect to zookeeper?
 
@@ -57,7 +57,7 @@ This is the output:
     ZK_PORT_3888_TCP_ADDR=172.17.0.4
     ZK_PORT_3888_TCP_PORT=3888
     ZK_PORT_3888_TCP_PROTO=tcp
-        ZK_NAME=/serene_jang/zk
+    ZK_NAME=/serene_jang/zk
     ZK_ENV_JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
     HOME=/root
   
@@ -82,12 +82,20 @@ In **ServiceLocator.java**:
 For easier recognition I switched the alias from zk to zookeeper:
 
     docker run -d --name telesales -p 8080:8080 --link zookeeper:zookeeper polim/thewolf_telesales:0.0.1
+    
+See also `start-telesales.sh` (this also links graylog2, but that's for later).
 
 ## Database
 
-We are using an H2 instance for development and I found this image which seems to be ok for what I want: `zilvinas/h2-dockerfile`. The database will store its data in `/opt/h2-data`. Currently I run it with:
+We are using an H2 instance for development and I found this image which seems to be ok for what I want: `zilvinas/h2-dockerfile`. The database will store its data in `/opt/h2-data`. Currently I run it with `start-h2db.sh`:
 
-    docker run -d --name h2db -P -v /var/h2data:/opt/h2-data zilvinas/h2-dockerfile
+    docker run -d --name h2db -p 8081:81 -v /var/telesales/dbdata:/opt/h2-data zilvinas/h2-dockerfile
+    
+The volume **/opt/h2-data** is bound to the host directory **/var/telesales/dbdata**.
+
+Behind the port 8081 is the web interface to the database on [localhost:8081](http://localhost:8081). If the sales service is running you can access the database using this JDBC url:
+    
+    jdbc:h2:tcp://localhost:1521/sales
     
 ## Sales service
 
@@ -111,7 +119,56 @@ The docker image has to be started with a link to the database too. And then it 
 
 We need to link zookeeper and the database:
 
-    docker run -d --name sales -P --link zookeeper:zookeeper --link h2db:db polim/thewolf_sales:0.0.1
+    docker run -d --name sales$1 -P --link zookeeper:zookeeper --link h2db:db polim/thewolf_sales:0.0.1
+    
+The start script `start-sales.sh` also links graylog2 which we will have a look at later on.
+
+## Graylog2
+
+To collect the logs from the different services there are different open source options like logstash, graylog2 etc. 
+
+### Start
+
+There is a docker image for Graylog2 and the start command in `start-graylog2.sh` is this:
+
+    docker run -d --name graylog2 -p 9000:9000 -p 12201:12201 -p 12201:12201/udp -v /var/telesales/logdata/data:/var/opt/graylog2/data -v /var/telesales/logdata/logs:/var/log/graylog2 graylog2/allinone
+
+Graylog2 keeps two data directories: one for its data, and one for the logs of graylog2 itself. They are mapped to directories on the host.
+
+### Configuration in the services
+
+The services already use **log4j2**. Now it is very simple to add a configuration.
+
+1. Add the dependencies to the pom.xml
+```xml
+		<dependency>
+			<groupId>org.graylog2.log4j2</groupId>
+			<artifactId>log4j2-gelf</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+```
+2. Configure log4j2.xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO">
+	<Properties>
+		<!-- Default properties for the Graylog2 instance in case they are not injected via docker link. -->
+		<Property name="GRAYLOG2_PORT_12201_UDP_ADDR">localhost</Property>
+		<Property name="GRAYLOG2_PORT_12201_UDP_PORT">12201</Property>
+	</Properties>
+
+	<Appenders>
+		<GELF name="gelfAppender" server="${env:GRAYLOG2_PORT_12201_UDP_ADDR}" port="${env:GRAYLOG2_PORT_12201_UDP_PORT}" protocol="UDP" />
+	</Appenders>
+	
+	<Loggers>
+		<Root level="INFO">
+			<AppenderRef ref="gelfAppender" />
+		</Root>
+	</Loggers>
+</Configuration>
+```
+The nice part is, that if we link the services docker instance to the graylog2 instance it will inject the neccessary environment variables and overwrite the default configuration (which is localhost:12201).
 
 ## Everything up?
 
@@ -119,9 +176,10 @@ A `docker ps` should yield something like this:
 
     CONTAINER ID        IMAGE                           COMMAND                CREATED              STATUS              PORTS                                                                       NAMES
     126299c0fe4f        polim/thewolf_telesales:0.0.1   "java -jar /app/tele   9 minutes ago        Up 9 minutes        0.0.0.0:8080->8080/tcp                                                      telesales           
-    4859926dd150        polim/thewolf_sales:0.0.1       "java -jar /app/sale   15 minutes ago       Up 15 minutes       0.0.0.0:8081->8080/tcp                                                      sales               
-    b55e6a182621        zilvinas/h2-dockerfile:latest   "/bin/sh -c 'java -c   25 minutes ago       Up 25 minutes       0.0.0.0:49163->1521/tcp, 0.0.0.0:49164->81/tcp                              h2db                
+    4859926dd150        polim/thewolf_sales:0.0.1       "java -jar /app/sale   15 minutes ago       Up 15 minutes                                                                                   sales               
+    b55e6a182621        zilvinas/h2-dockerfile:latest   "/bin/sh -c 'java -c   25 minutes ago       Up 25 minutes       0.0.0.0:49163->1521/tcp, 0.0.0.0:8081->81/tcp                               h2db                
     d67cd7b07e02        jplock/zookeeper:latest         "/opt/zookeeper-3.4.   About an hour ago    Up About an hour    0.0.0.0:49160->2181/tcp, 0.0.0.0:49161->2888/tcp, 0.0.0.0:49162->3888/tcp   zookeeper 
+    b574a6b9ccd7        graylog2/allinone:latest        "\"/bin/sh -c '/opt/   13 minutes ago       Up 13 minutes       0.0.0.0:9000->9000/tcp, 0.0.0.0:12201->12201/tcp, 0.0.0.0:12201->12201/udp  graylog2
 
 ## Status
 
